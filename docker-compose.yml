@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: daily-vibe-tracker-app
+    restart: unless-stopped
+    env_file:
+      - ./config.env # Environment variables for the app service
+    ports:
+      - "${SERVER_PORT:-8080}:${SERVER_PORT:-8080}" # Map host port to container port, default 8080
+    depends_on:
+      db:
+        condition: service_healthy # Wait for db to be healthy before starting app
+    volumes:
+      - .:/app # Optional: Mount host code for development (reflects changes without rebuilding image)
+               # For production, you might remove this volume or make it read-only for config if needed.
+               # However, config.env is already copied in Dockerfile, so this is mainly for dev.
+    networks:
+      - vibe-network
+
+  db:
+    image: postgres:15-alpine
+    container_name: daily-vibe-tracker-db
+    restart: unless-stopped
+    env_file:
+      - ./config.env # Use variables from config.env for PostgreSQL setup
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: ${DB_NAME:-daily_vibe_tracker}
+    ports:
+      - "${DB_PORT:-5432}:5432" # Map host DB port to container DB port
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Persist database data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-daily_vibe_tracker}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vibe-network
+
+volumes:
+  postgres_data: # Define the postgres_data volume
+
+networks:
+  vibe-network:
+    driver: bridge

@@ -1,0 +1,71 @@
+{
+    "schemes": [
+        "http",
+        "https"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "This is a simple API for tracking daily vibes.",
+        "title": "Daily Vibe Tracker API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "http://www.swagger.io/support",
+            "email": "support@swagger.io"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/health": {
+            "get": {
+                "description": "Check the health of the API and database connection.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Health"
+                ],
+                "summary": "API Health Check",
+                "responses": {
+                    "200": {
+                        "description": "Successfully checked health",
+                        "schema": {
+                            "$ref": "#/definitions/handler.HealthCheckResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Service unavailable if database ping fails",
+                        "schema": {
+                            "$ref": "#/definitions/handler.HealthCheckResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "handler.HealthCheckResponse": {
+            "type": "object",
+            "properties": {
+                "database_status": {
+                    "type": "string"
+                },
+                "server_status": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

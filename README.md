@@ -1,1 +1,208 @@
-# Daily-Vibe-Tracker
+# Daily Vibe Tracker API
+
+This is a RESTful API for tracking daily vibes/moods, built with Go using the Clean Architecture pattern.
+
+## Features
+
+*   **Go (Golang)** as the primary language.
+*   **Clean Architecture** for a modular and maintainable codebase.
+*   **Choice of Web Framework**:
+    *   **Fiber** (default)
+    *   **GIN** (configurable via `config.env`)
+*   **PostgreSQL** database for data persistence.
+*   **GORM** as the ORM for database interactions.
+*   **Swaggo** for API documentation generation.
+*   **Dockerized** for easy setup and deployment.
+*   **Environment-based configuration**.
+*   **Basic Middleware**: Recovery, Logging, CORS, Request ID.
+*   **Health Check** endpoint.
+
+## Project Structure
+
+```
+daily-vibe-tracker/
+├── cmd/
+│   └── server/
+│       └── main.go         # Main application entry point
+├── internal/
+│   ├── config/             # Configuration loading
+│   ├── handler/            # HTTP handlers (controllers)
+│   ├── service/            # Business logic
+│   ├── repository/         # Data access layer
+│   ├── model/              # Database models
+│   └── middleware/         # HTTP middleware (placeholders)
+├── pkg/
+│   ├── database/           # Database connection and migration
+│   ├── gin/                # GIN framework specific setup
+│   └── fiber/              # Fiber framework specific setup
+├── docs/                   # Swaggo generated API documentation
+├── migrations/             # Database migration files (if using a separate tool)
+├── config.env              # Environment configuration file (gitignored, use config.example.env)
+├── Dockerfile              # Docker build definition
+├── docker-compose.yml      # Docker multi-container setup
+└── README.md               # This file
+```
+
+## Prerequisites
+
+*   Go (version 1.22 or higher recommended)
+*   Docker and Docker Compose (for containerized setup)
+*   Git
+
+## Setup and Running
+
+### 1. Clone the Repository
+
+```bash
+git clone <your-repository-url>
+cd daily-vibe-tracker
+```
+Replace `<your-repository-url>` with the actual URL of your repository.
+
+### 2. Configuration
+
+The application uses a `config.env` file for configuration. A sample file `config.example.env` should be provided. Copy it to `config.env` and customize it to your needs:
+
+```bash
+cp config.env config.example.env # If config.example.env is provided
+# OR create config.env manually
+touch config.env
+```
+
+Then, populate `config.env` with the following content, adjusting values as necessary:
+
+```env
+# Database Configuration
+DB_HOST=localhost           # Use 'db' if running with docker-compose default network
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=password
+DB_NAME=daily_vibe_tracker
+DB_SSL_MODE=disable
+DB_TIMEZONE=UTC
+
+# Server Configuration
+SERVER_PORT=8080
+SERVER_HOST=0.0.0.0
+SERVER_FRAMEWORK=fiber      # or gin
+SERVER_READ_TIMEOUT=15s
+SERVER_WRITE_TIMEOUT=15s
+SERVER_IDLE_TIMEOUT=60s
+
+# Application Configuration
+APP_ENV=development         # development, staging, production
+LOG_LEVEL=info              # debug, info, warn, error, fatal, panic
+APP_NAME="Daily Vibe Tracker"
+
+# Additional Configuration
+CORS_ALLOWED_ORIGINS=*
+RATE_LIMIT_MAX=100          # Not yet implemented
+RATE_LIMIT_WINDOW=1m        # Not yet implemented
+
+# SWAGGER Configuration (used by main.go to set SwaggerInfo)
+SWAGGER_HOST=localhost:8080 # For local native run. If using Docker, ensure this matches how you access it.
+SWAGGER_BASE_PATH=/
+SWAGGER_SCHEMES=http,https
+```
+
+**Important for Docker:**
+When running with `docker-compose`, the `DB_HOST` in `config.env` should be set to the service name of the database container (e.g., `db` as defined in `docker-compose.yml`). The `docker-compose.yml` already passes the environment variables from `config.env` to both `app` and `db` services.
+
+### 3. Running with Docker (Recommended)
+
+This is the easiest way to get started, as it handles the Go environment and PostgreSQL database.
+
+1.  **Ensure `config.env` is configured correctly**, especially `DB_HOST=db`.
+2.  **Build and start the services:**
+
+    ```bash
+    docker-compose up --build
+    ```
+    To run in detached mode:
+    ```bash
+    docker-compose up --build -d
+    ```
+
+3.  The API will be accessible at `http://localhost:<SERVER_PORT>` (e.g., `http://localhost:8080` by default).
+4.  The PostgreSQL database will be accessible on `localhost:<DB_PORT>` (e.g., `localhost:5432` by default).
+
+### 4. Running Natively (Without Docker)
+
+1.  **Install PostgreSQL** and ensure it is running.
+2.  **Create the database** specified in `config.env` (e.g., `daily_vibe_tracker`).
+3.  **Ensure `config.env` is configured correctly** (e.g., `DB_HOST=localhost`).
+4.  **Install Go dependencies:**
+
+    ```bash
+    go mod tidy
+    ```
+5.  **Run the application:**
+
+    ```bash
+    go run cmd/server/main.go
+    ```
+    The API will be accessible at `http://localhost:<SERVER_PORT>`.
+
+### 5. API Documentation (Swagger)
+
+Once the server is running, API documentation (generated by Swaggo) is available at:
+
+`http://<SERVER_HOST>:<SERVER_PORT>/swagger/index.html`
+
+For example, if running locally with default settings: `http://localhost:8080/swagger/index.html`
+
+**To generate or update Swagger documentation:**
+
+1.  Install Swag CLI (if not already installed):
+    ```bash
+    go install github.com/swaggo/swag/cmd/swag@latest
+    ```
+2.  Run the following command from the root of the project:
+    ```bash
+    swag init -g cmd/server/main.go --output ./docs
+    ```
+    This will update the files in the `docs/` directory.
+
+## Endpoints
+
+### Health Check
+
+*   **GET /health**
+    *   Description: Checks the server and database connection status.
+    *   Success Response (200 OK):
+        ```json
+        {
+            "server_status": "OK",
+            "database_status": "OK",
+            "timestamp": "2023-10-27T10:00:00Z"
+        }
+        ```
+    *   Error Response (503 Service Unavailable - if DB connection fails):
+        ```json
+        {
+            "server_status": "OK",
+            "database_status": "Error: <database error details>",
+            "timestamp": "2023-10-27T10:00:00Z"
+        }
+        ```
+
+*(More endpoints for Vibe CRUD operations will be documented here as they are implemented.)*
+
+## Development
+
+### Running Tests
+
+*(Test setup and commands will be added here once tests are implemented.)*
+
+### Conventional Commits
+
+This project aims to follow [Conventional Commits](https://www.conventionalcommits.org/) for commit messages. Examples:
+*   `feat: add user authentication`
+*   `fix: resolve issue with date parsing`
+*   `docs: update README with setup instructions`
+*   `chore: update dependencies`
+
+## Contributing
+
+*(Contribution guidelines will be added here.)*
+```
