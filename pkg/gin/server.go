@@ -15,6 +15,8 @@ import (
 
 	"github.com/aebalz/daily-vibe-tracker/internal/config"
 	"github.com/aebalz/daily-vibe-tracker/internal/handler" // Will be created later
+	customMiddleware "github.com/aebalz/daily-vibe-tracker/internal/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	// Import docs for swagger
 	_ "github.com/aebalz/daily-vibe-tracker/docs"
@@ -36,6 +38,10 @@ func NewGinServer(cfg *config.AppConfig, vibeHandler *handler.VibeHandler) *gin.
 	router.Use(gin.Recovery())        // Recovery middleware
 	router.Use(requestIDMiddleware()) // Request ID middleware
 	router.Use(loggingMiddleware())   // Custom logging middleware
+	// Add Metrics and Rate Limiting middleware
+	router.Use(customMiddleware.MetricsMiddlewareGin())
+	router.Use(customMiddleware.RateLimiterGin(cfg.RateLimitPerSecond, cfg.RateLimitBurst))
+
 
 	corsConfig := cors.DefaultConfig()
 	if len(cfg.CorsAllowedOrigins) == 1 && cfg.CorsAllowedOrigins[0] == "*" {
@@ -43,45 +49,51 @@ func NewGinServer(cfg *config.AppConfig, vibeHandler *handler.VibeHandler) *gin.
 	} else {
 		corsConfig.AllowOrigins = cfg.CorsAllowedOrigins
 	}
-	corsConfig.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
+	corsConfig.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Request-ID"}
 	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	router.Use(cors.New(corsConfig))
 
 	// Swagger UI
-	// Make sure SWAGGER_HOST and SWAGGER_BASE_PATH are set in config.env
-	// e.g. SWAGGER_HOST=localhost:8080
-	// e.g. SWAGGER_BASE_PATH=/
-	// The URL will be http://localhost:8080/swagger/index.html if base path is /
-	// Adjust swaggerInfo.Host and swaggerInfo.BasePath in docs/docs.go accordingly or via env for Swaggo
-	// ginSwagger.URL(fmt.Sprintf("http://%s%s/swagger/doc.json", cfg.SwaggerHost, cfg.SwaggerBasePath))
-	// We will configure docs.SwaggerInfo.Host and docs.SwaggerInfo.BasePath in main.go before this.
-	url := ginSwagger.URL("/swagger/doc.json") // The url pointing to API definition
+	// BasePath for swagger UI itself. If docs.SwaggerInfo.BasePath is /api/v1,
+	// then swagger docs will be found relative to that for API calls, but the UI
+	// itself is served from /swagger/*any
+	// The /swagger/doc.json path is relative to the server root.
+	url := ginSwagger.URL("/swagger/doc.json")
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggoFiles.Handler, url))
 
-	// Routes
-	// Example: router.GET("/", func(c *gin.Context) {
-	// 	c.String(http.StatusOK, "Hello, Gin World!")
-	// })
 
-	// Health Check Route (will be properly defined with a handler later)
-	if vibeHandler != nil && vibeHandler.HealthHandler != nil { // Ensure HealthHandler is initialized
+	// Prometheus Metrics Endpoint
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
+
+	// Routes
+	// Health Check Route
+	if vibeHandler != nil && vibeHandler.HealthHandler != nil {
 		router.GET("/health", vibeHandler.HealthHandler.CheckHealthGin)
 	} else {
-		// Fallback if handler not ready
 		router.GET("/health", func(c *gin.Context) {
-			c.JSON(http.StatusOK, gin.H{"status": "initializing"})
+			c.JSON(http.StatusOK, gin.H{"status": "initializing health handler"})
 		})
 	}
 
-	// TODO: Add vibe routes here once the handler is more complete
-	// api := router.Group("/api/v1")
-	// {
-	// 	api.GET("/vibes", vibeHandler.GetAllVibesGin)
-	// 	api.POST("/vibes", vibeHandler.CreateVibeGin)
-	// 	api.GET("/vibes/:id", vibeHandler.GetVibeByIDGin)
-	// 	api.PUT("/vibes/:id", vibeHandler.UpdateVibeGin)
-	// 	api.DELETE("/vibes/:id", vibeHandler.DeleteVibeGin)
-	// }
+	// Vibe Routes
+	apiV1 := router.Group("/api/v1") // All vibe routes will be under /api/v1
+	{
+		vibesGroup := apiV1.Group("/vibes")
+		// Example of group specific middleware:
+		// vibesGroup.Use(anotherMiddleware())
+
+		vibesGroup.POST("/", vibeHandler.CreateVibeGin)
+		vibesGroup.GET("/", vibeHandler.GetAllVibesGin)
+		vibesGroup.GET("/stats", vibeHandler.GetVibeStatsGin)
+		vibesGroup.GET("/today", vibeHandler.GetTodaysVibeRecommendationGin)
+		vibesGroup.GET("/streak", vibeHandler.GetMoodStreakGin)
+		vibesGroup.GET("/export", vibeHandler.ExportVibesGin)
+		vibesGroup.POST("/bulk", vibeHandler.BulkImportVibesGin)
+		vibesGroup.GET("/:id", vibeHandler.GetVibeByIDGin)
+		vibesGroup.PUT("/:id", vibeHandler.UpdateVibeGin)
+		vibesGroup.DELETE("/:id", vibeHandler.DeleteVibeGin)
+	}
 
 	return router
 }

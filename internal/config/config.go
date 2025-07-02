@@ -31,9 +31,15 @@ type AppConfig struct {
 	CorsAllowedOrigins []string
 	RateLimitMax       int
 	RateLimitWindow    time.Duration
+	RateLimitPerSecond float64 // For middleware
+	RateLimitBurst     int     // For middleware
 	SwaggerHost        string
 	SwaggerBasePath    string
 	SwaggerSchemes     []string
+	RedisAddr          string
+	RedisPassword      string
+	RedisDB            int
+	CacheTTLExpiration time.Duration
 }
 
 // LoadConfig loads configuration from .env file or environment variables.
@@ -75,11 +81,17 @@ func LoadConfig(envFile ...string) (*AppConfig, error) {
 		LogLevel:           strings.ToLower(getStringEnv("LOG_LEVEL", "info")),
 		AppName:            getStringEnv("APP_NAME", "Daily Vibe Tracker"),
 		CorsAllowedOrigins: getSliceEnv("CORS_ALLOWED_ORIGINS", "*"),
-		RateLimitMax:       getIntEnv("RATE_LIMIT_MAX", 100),
-		RateLimitWindow:    getDurationEnv("RATE_LIMIT_WINDOW", "1m"),
+		RateLimitMax:       getIntEnv("RATE_LIMIT_MAX", 100),         // Example, might not be directly used if rps/burst used
+		RateLimitWindow:    getDurationEnv("RATE_LIMIT_WINDOW", "1m"), // Example, might not be directly used
+		RateLimitPerSecond: getFloatEnv("RATE_LIMIT_RPS", 10),         // Requests per second for limiter
+		RateLimitBurst:     getIntEnv("RATE_LIMIT_BURST", 20),         // Burst for limiter
 		SwaggerHost:        getStringEnv("SWAGGER_HOST", "localhost:8080"),
-		SwaggerBasePath:    getStringEnv("SWAGGER_BASE_PATH", "/"),
+		SwaggerBasePath:    getStringEnv("SWAGGER_BASE_PATH", "/api/v1"), // Defaulting to /api/v1
 		SwaggerSchemes:     getSliceEnv("SWAGGER_SCHEMES", "http,https"),
+		RedisAddr:          getStringEnv("REDIS_ADDR", "localhost:6379"),
+		RedisPassword:      getStringEnv("REDIS_PASSWORD", ""), // No password by default
+		RedisDB:            getIntEnv("REDIS_DB", 0),           // Default Redis DB
+		CacheTTLExpiration: getDurationEnv("CACHE_TTL_EXPIRATION", "5m"),
 	}
 
 	// Validate framework choice
@@ -143,4 +155,17 @@ func getSliceEnv(key, defaultValue string) []string {
 		return []string{}
 	}
 	return strings.Split(valueStr, ",")
+}
+
+func getFloatEnv(key string, defaultValue float64) float64 {
+	valueStr, exists := os.LookupEnv(key)
+	if !exists {
+		return defaultValue
+	}
+	value, err := strconv.ParseFloat(valueStr, 64)
+	if err != nil {
+		log.Printf("Warning: Invalid float value for %s: %s. Using default %f.", key, valueStr, defaultValue)
+		return defaultValue
+	}
+	return value
 }
