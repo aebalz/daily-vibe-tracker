@@ -1,0 +1,112 @@
+# Go build outputs
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+_obj/
+_test/
+bin/
+pkg/
+*.test
+
+# Go module files
+vendor/
+
+# IDE / Editor specific files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+nbproject/
+*.swp
+*~
+*.bak
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment configuration files
+config.env
+
+# Log files
+*.log
+
+# Docker-compose local files
+docker-compose.local.yml
+
+# Coverage output
+coverage.out
+coverage.html
+
+# Swaggo generated files (docs/docs.go is sometimes committed, but swagger.json/yaml often not)
+# For this project, docs/docs.go IS committed as per Swaggo's general practice.
+# However, if you prefer not to commit generated swagger json/yaml, uncomment below:
+# docs/swagger.json
+# docs/swagger.yaml
+
+# Local development tools / temp files
+tmp/
+temp/
+*.tmp
+
+# Mac files
+.AppleDouble
+.LSOverride
+
+# Windows thumbnail cache files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# JetBrains Rider
+.idea*/
+*.sln.iml
+*.suo
+*.user
+*.resharper
+project.razor.json
+*.csproj.DotSettings
+*.vbproj.DotSettings
+*.fsproj.DotSettings
+*.dbmdl
+*.edmx
+
+# GoLand
+.idea_modules/
+modules.xml
+workspace.xml
+tasks.xml
+.navProperties.xml
+.shelf/
+vcs.xml
+dataSources/
+dataSources.ids
+dataSources.local.xml
+sqlDataSources.xml
+dynamic.xml
+uiDesigner.xml
+dbnavigator.xml
+gradle.xml
+libraries/
+
+# Compiled output from Go
+daily-vibe-tracker # If you build with `go build -o daily-vibe-tracker` in root
+server # Binary name from Dockerfile and Makefile (if any)
+**/server # Binary name if built in cmd/server/
+
+# Env file example
+config.example.env # Usually committed, but if you want to ignore it for some reason.
+                   # For this project, we assume config.example.env would be committed.
+
+# Binaries
+app/server # Path of binary in Docker image
+```
