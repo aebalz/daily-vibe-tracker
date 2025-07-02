@@ -6,12 +6,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/aebalz/daily-vibe-tracker/internal/config"
+	"github.com/aebalz/daily-vibe-tracker/internal/model"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-
-	"github.com/user/daily-vibe-tracker/internal/config"
-	"github.com/user/daily-vibe-tracker/internal/model"
 )
 
 var DB *gorm.DB

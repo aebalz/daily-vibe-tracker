@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -15,10 +13,11 @@ import (
 	swaggoFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
-	"github.com/user/daily-vibe-tracker/internal/config"
-	"github.com/user/daily-vibe-tracker/internal/handler" // Will be created later
+	"github.com/aebalz/daily-vibe-tracker/internal/config"
+	"github.com/aebalz/daily-vibe-tracker/internal/handler" // Will be created later
+
 	// Import docs for swagger
-	_ "github.com/user/daily-vibe-tracker/docs"
+	_ "github.com/aebalz/daily-vibe-tracker/docs"
 )
 
 const RequestIDKey = "requestID"
@@ -34,7 +33,7 @@ func NewGinServer(cfg *config.AppConfig, vibeHandler *handler.VibeHandler) *gin.
 	router := gin.New()
 
 	// Middleware
-	router.Use(gin.Recovery()) // Recovery middleware
+	router.Use(gin.Recovery())        // Recovery middleware
 	router.Use(requestIDMiddleware()) // Request ID middleware
 	router.Use(loggingMiddleware())   // Custom logging middleware
 
@@ -48,7 +47,6 @@ func NewGinServer(cfg *config.AppConfig, vibeHandler *handler.VibeHandler) *gin.
 	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	router.Use(cors.New(corsConfig))
 
-
 	// Swagger UI
 	// Make sure SWAGGER_HOST and SWAGGER_BASE_PATH are set in config.env
 	// e.g. SWAGGER_HOST=localhost:8080
@@ -59,7 +57,6 @@ func NewGinServer(cfg *config.AppConfig, vibeHandler *handler.VibeHandler) *gin.
 	// We will configure docs.SwaggerInfo.Host and docs.SwaggerInfo.BasePath in main.go before this.
 	url := ginSwagger.URL("/swagger/doc.json") // The url pointing to API definition
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggoFiles.Handler, url))
-
 
 	// Routes
 	// Example: router.GET("/", func(c *gin.Context) {

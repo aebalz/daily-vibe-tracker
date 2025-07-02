@@ -1,24 +1,21 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/user/daily-vibe-tracker/docs" // Swagger docs
-	"github.com/user/daily-vibe-tracker/internal/config"
-	"github.com/user/daily-vibe-tracker/internal/handler"
-	"github.com/user/daily-vibe-tracker/internal/repository"
-	"github.com/user/daily-vibe-tracker/internal/service"
-	"github.com/user/daily-vibe-tracker/pkg/database"
-	fiberserver "github.com/user/daily-vibe-tracker/pkg/fiber"
-	ginserver "github.com/user/daily-vibe-tracker/pkg/gin"
+	"github.com/aebalz/daily-vibe-tracker/docs"
+	"github.com/aebalz/daily-vibe-tracker/internal/config"
+	"github.com/aebalz/daily-vibe-tracker/internal/handler"
+	"github.com/aebalz/daily-vibe-tracker/internal/repository"
+	"github.com/aebalz/daily-vibe-tracker/internal/service"
+	"github.com/aebalz/daily-vibe-tracker/pkg/database"
 
-	"gorm.io/gorm"
+	fiberserver "github.com/aebalz/daily-vibe-tracker/pkg/fiber"
+	ginserver "github.com/aebalz/daily-vibe-tracker/pkg/gin"
 )
 
 // @title Daily Vibe Tracker API
@@ -53,7 +50,6 @@ func main() {
 	docs.SwaggerInfo.Schemes = cfg.SwaggerSchemes
 	docs.SwaggerInfo.Title = cfg.AppName + " API"
 
-
 	// Connect to database
 	db, err := database.ConnectDB(cfg)
 	if err != nil {
@@ -74,7 +70,7 @@ func main() {
 
 	// Vibe specific components (example, will be expanded)
 	vibeRepo := repository.NewVibeRepository(db) // Placeholder
-	vibeSvc := service.NewVibeService(vibeRepo)   // Placeholder
+	vibeSvc := service.NewVibeService(vibeRepo)  // Placeholder
 
 	// Main Vibe Handler (will contain all handlers)
 	// For now, it only contains the HealthHandler. Other handlers will be added to it.

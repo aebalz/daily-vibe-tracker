@@ -1,15 +1,15 @@
 package handler
 
 import (
-	// "github.com/user/daily-vibe-tracker/internal/model" // Will be needed for actual vibe handlers
-	"github.com/user/daily-vibe-tracker/internal/service"
+	// "github.com/aebalz/daily-vibe-tracker/internal/model" // Will be needed for actual vibe handlers
+	"github.com/aebalz/daily-vibe-tracker/internal/service"
 )
 
 // VibeHandler encapsulates all handlers for the application.
 // It will include handlers for Vibe operations and also the HealthHandler.
 type VibeHandler struct {
-	Service       *service.VibeService // For Vibe CRUD operations
-	HealthHandler *HealthHandler       // For health checks
+	Service       service.VibeServiceInterface // For Vibe CRUD operations
+	HealthHandler *HealthHandler               // For health checks
 }
 
 // NewVibeHandler creates a new VibeHandler.
@@ -39,7 +39,6 @@ type VibeHandler struct {
 
 // DeleteVibeFiber handles DELETE requests to remove a vibe.
 // func (vh *VibeHandler) DeleteVibeFiber(c *fiber.Ctx) error { return nil }
-
 
 // Placeholder for actual Vibe handlers for Gin.
 // These will be implemented in a later prompt.

@@ -4,11 +4,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 
-	"github.com/user/daily-vibe-tracker/pkg/database"
+	"github.com/aebalz/daily-vibe-tracker/pkg/database"
 )
 
 // HealthHandler handles health check requests.

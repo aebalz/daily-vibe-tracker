@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"github.com/user/daily-vibe-tracker/internal/model"
 	"gorm.io/gorm"
 )
 

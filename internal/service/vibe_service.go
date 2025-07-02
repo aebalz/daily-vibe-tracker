@@ -1,8 +1,8 @@
 package service
 
 import (
-	// "github.com/user/daily-vibe-tracker/internal/model" // Will be needed for actual methods
-	"github.com/user/daily-vibe-tracker/internal/repository"
+	// "github.com/aebalz/daily-vibe-tracker/internal/model" // Will be needed for actual methods
+	"github.com/aebalz/daily-vibe-tracker/internal/repository"
 )
 
 // VibeServiceInterface defines the interface for vibe service operations.

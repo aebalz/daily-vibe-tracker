@@ -3,7 +3,6 @@ package fiber
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -12,10 +11,11 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 	swaggoFiber "github.com/swaggo/fiber-swagger"
 
-	"github.com/user/daily-vibe-tracker/internal/config"
-	"github.com/user/daily-vibe-tracker/internal/handler" // Will be created later
+	"github.com/aebalz/daily-vibe-tracker/internal/config"
+	"github.com/aebalz/daily-vibe-tracker/internal/handler" // Will be created later
+
 	// Import docs for swagger
-	_ "github.com/user/daily-vibe-tracker/docs"
+	_ "github.com/aebalz/daily-vibe-tracker/docs"
 )
 
 // NewFiberServer creates and configures a new Fiber application.
@@ -47,7 +47,6 @@ func NewFiberServer(cfg *config.AppConfig, vibeHandler *handler.VibeHandler) *fi
 	// The URL will be http://localhost:8080/swagger/index.html if base path is /
 	app.Get("/swagger/*", swaggoFiber.WrapHandler)
 
-
 	// Routes
 	// Example: app.Get("/", func(c *fiber.Ctx) error {
 	// 	return c.SendString("Hello, Fiber World!")
@@ -65,7 +64,6 @@ func NewFiberServer(cfg *config.AppConfig, vibeHandler *handler.VibeHandler) *fi
 		})
 	}
 
-
 	// TODO: Add vibe routes here once the handler is more complete
 	// api := app.Group("/api/v1")
 	// api.Get("/vibes", vibeHandler.GetAllVibesFiber)
@@ -73,7 +71,6 @@ func NewFiberServer(cfg *config.AppConfig, vibeHandler *handler.VibeHandler) *fi
 	// api.Get("/vibes/:id", vibeHandler.GetVibeByIDFiber)
 	// api.Put("/vibes/:id", vibeHandler.UpdateVibeFiber)
 	// api.Delete("/vibes/:id", vibeHandler.DeleteVibeFiber)
-
 
 	return app
 }
