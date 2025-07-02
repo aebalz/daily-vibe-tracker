@@ -13,9 +13,14 @@ import (
 
 	"github.com/aebalz/daily-vibe-tracker/internal/config"
 	"github.com/aebalz/daily-vibe-tracker/internal/handler" // Will be created later
+	customMiddleware "github.com/aebalz/daily-vibe-tracker/internal/middleware"
+
+	customMiddleware "github.com/aebalz/daily-vibe-tracker/internal/middleware"
 
 	// Import docs for swagger
 	_ "github.com/aebalz/daily-vibe-tracker/docs"
+	"github.com/gofiber/adaptor/v2"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // NewFiberServer creates and configures a new Fiber application.
@@ -35,42 +40,59 @@ func NewFiberServer(cfg *config.AppConfig, vibeHandler *handler.VibeHandler) *fi
 		Format: "[${time}] ${ip} ${status} - ${method} ${path} ${latency}\nREQUEST_ID: ${locals:requestid}\n",
 	}))
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: cfg.CorsAllowedOrigins[0], // Fiber's CORS AllowOrigins is a string, not a slice. Taking the first one.
-		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+		AllowOrigins: cfg.CorsAllowedOrigins[0], // Fiber's CORS AllowOrigins is a string. Adjust if multiple needed via other means.
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization, X-Request-ID",
 		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
 	}))
 
+	// Add Custom Middleware (Metrics, Rate Limiting)
+	// These should come after basic middleware like logger/requestid but before routes.
+	app.Use(customMiddleware.MetricsMiddlewareFiber())
+	// Apply rate limiter globally or to specific groups/routes as needed
+	// Example: Global application (adjust rps and burst as needed)
+	// For specific groups: api.Use(customMiddleware.RateLimiterFiber(10, 20))
+	app.Use(customMiddleware.RateLimiterFiber(cfg.RateLimitPerSecond, cfg.RateLimitBurst))
+
+
 	// Swagger UI
-	// Make sure SWAGGER_HOST and SWAGGER_BASE_PATH are set in config.env
-	// e.g. SWAGGER_HOST=localhost:8080
-	// e.g. SWAGGER_BASE_PATH=/api/v1
-	// The URL will be http://localhost:8080/swagger/index.html if base path is /
-	app.Get("/swagger/*", swaggoFiber.WrapHandler)
+	// BasePath for swagger UI itself. If docs.SwaggerInfo.BasePath is /api/v1,
+	// then swagger docs will be found relative to that for API calls, but the UI
+	// itself is served from /swagger/*
+	app.Get("/swagger/*", swaggoFiber.WrapHandler) // Serves Swagger UI
+
+	// Prometheus Metrics Endpoint
+	app.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
+
 
 	// Routes
-	// Example: app.Get("/", func(c *fiber.Ctx) error {
-	// 	return c.SendString("Hello, Fiber World!")
-	// })
-
-	// Health Check Route (will be properly defined with a handler later)
-	if vibeHandler != nil && vibeHandler.HealthHandler != nil { // Ensure HealthHandler is initialized
+	// Health Check Route
+	if vibeHandler != nil && vibeHandler.HealthHandler != nil {
 		app.Get("/health", vibeHandler.HealthHandler.CheckHealthFiber)
 	} else {
-		// Fallback if handler not ready (should not happen in final setup)
 		app.Get("/health", func(c *fiber.Ctx) error {
-			return c.Status(fiber.StatusOK).JSON(fiber.Map{
-				"status": "initializing",
-			})
+			return c.Status(fiber.StatusOK).JSON(fiber.Map{"status": "initializing health handler"})
 		})
 	}
 
-	// TODO: Add vibe routes here once the handler is more complete
-	// api := app.Group("/api/v1")
-	// api.Get("/vibes", vibeHandler.GetAllVibesFiber)
-	// api.Post("/vibes", vibeHandler.CreateVibeFiber)
-	// api.Get("/vibes/:id", vibeHandler.GetVibeByIDFiber)
-	// api.Put("/vibes/:id", vibeHandler.UpdateVibeFiber)
-	// api.Delete("/vibes/:id", vibeHandler.DeleteVibeFiber)
+	// Vibe Routes
+	apiV1 := app.Group("/api/v1") // All vibe routes will be under /api/v1
+	{
+		vibesGroup := apiV1.Group("/vibes")
+		// Apply specific middleware to this group if needed
+		// vibesGroup.Use(customMiddleware.AnotherSpecificMiddleware())
+
+		vibesGroup.Post("/", vibeHandler.CreateVibeFiber)
+		vibesGroup.Get("/", vibeHandler.GetAllVibesFiber)
+		vibesGroup.Get("/stats", vibeHandler.GetVibeStatsFiber)
+		vibesGroup.Get("/today", vibeHandler.GetTodaysVibeRecommendationFiber)
+		vibesGroup.Get("/streak", vibeHandler.GetMoodStreakFiber)
+		vibesGroup.Get("/export", vibeHandler.ExportVibesFiber)
+		vibesGroup.Post("/bulk", vibeHandler.BulkImportVibesFiber)
+		vibesGroup.Get("/:id", vibeHandler.GetVibeByIDFiber)
+		vibesGroup.Put("/:id", vibeHandler.UpdateVibeFiber)
+		vibesGroup.Delete("/:id", vibeHandler.DeleteVibeFiber)
+	}
+
 
 	return app
 }
