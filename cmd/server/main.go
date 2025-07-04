@@ -11,9 +11,7 @@ import (
 	"github.com/aebalz/daily-vibe-tracker/internal/config"
 	"github.com/aebalz/daily-vibe-tracker/internal/handler"
 	"github.com/aebalz/daily-vibe-tracker/internal/repository"
-	"github.com/aebalz/daily-vibe-tracker/internal/repository"
 	"github.com/aebalz/daily-vibe-tracker/internal/service"
-	"github.com/aebalz/daily-vibe-tracker/pkg/cache"
 	"github.com/aebalz/daily-vibe-tracker/pkg/database"
 
 	fiberserver "github.com/aebalz/daily-vibe-tracker/pkg/fiber"
@@ -54,7 +52,6 @@ func main() {
 	docs.SwaggerInfo.BasePath = cfg.SwaggerBasePath // Should be /api/v1 as per spec for vibe routes
 	docs.SwaggerInfo.Schemes = cfg.SwaggerSchemes
 
-
 	// Connect to database
 	db, err := database.ConnectDB(cfg)
 	if err != nil {
@@ -74,20 +71,20 @@ func main() {
 	healthHandler := handler.NewHealthHandler(db)
 
 	// Initialize Redis Cache
-	redisCache, err := cache.NewRedisCache(cfg)
-	if err != nil {
-		log.Printf("Warning: Failed to connect to Redis, caching will be disabled: %v", err)
-		// Depending on policy, you might choose to log.Fatalf here if cache is critical
-		// For now, we'll allow the app to run without cache if Redis connection fails.
-		redisCache = nil // Ensure it's nil if connection failed
-	} else {
-		log.Println("Successfully connected to Redis.")
-		defer redisCache.Close()
-	}
+	// redisCache, err := cache.NewRedisCache(cfg)
+	// if err != nil {
+	// 	log.Printf("Warning: Failed to connect to Redis, caching will be disabled: %v", err)
+	// 	// Depending on policy, you might choose to log.Fatalf here if cache is critical
+	// 	// For now, we'll allow the app to run without cache if Redis connection fails.
+	// 	redisCache = nil // Ensure it's nil if connection failed
+	// } else {
+	// 	log.Println("Successfully connected to Redis.")
+	// 	defer redisCache.Close()
+	// }
 
 	// Vibe specific components
 	vibeRepo := repository.NewVibeRepository(db)
-	vibeSvc := service.NewVibeService(vibeRepo, redisCache, cfg) // Pass cache and config
+	vibeSvc := service.NewVibeService(vibeRepo, cfg) // Pass cache and config
 
 	// Main Vibe Handler (will contain all handlers)
 	mainVibeHandler := &handler.VibeHandler{
