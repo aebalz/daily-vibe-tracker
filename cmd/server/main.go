@@ -11,7 +11,6 @@ import (
 	"github.com/aebalz/daily-vibe-tracker/internal/config"
 	"github.com/aebalz/daily-vibe-tracker/internal/handler"
 	"github.com/aebalz/daily-vibe-tracker/internal/repository"
-	"github.com/aebalz/daily-vibe-tracker/internal/repository"
 	"github.com/aebalz/daily-vibe-tracker/internal/service"
 	"github.com/aebalz/daily-vibe-tracker/pkg/cache"
 	"github.com/aebalz/daily-vibe-tracker/pkg/database"
