@@ -244,7 +244,7 @@ func (r *VibeRepository) GetMoodStreak(mood string, checkCurrent bool) (int, err
 			}
 			// Compare date part only for consecutive days
 			y1, m1, d1 := prevDate.Date()
-			y2, m2, d2 := vibe.Date().Date()
+			y2, m2, d2 := vibe.Date.Date()
 			expectedNextDate := time.Date(y1, m1, d1, 0, 0, 0, 0, prevDate.Location()).AddDate(0, 0, 1)
 
 			if y2 == expectedNextDate.Year() && m2 == expectedNextDate.Month() && d2 == expectedNextDate.Day() {

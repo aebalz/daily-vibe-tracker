@@ -15,8 +15,6 @@ import (
 	"github.com/aebalz/daily-vibe-tracker/internal/handler" // Will be created later
 	customMiddleware "github.com/aebalz/daily-vibe-tracker/internal/middleware"
 
-	customMiddleware "github.com/aebalz/daily-vibe-tracker/internal/middleware"
-
 	// Import docs for swagger
 	_ "github.com/aebalz/daily-vibe-tracker/docs"
 	"github.com/gofiber/adaptor/v2"
@@ -53,7 +51,6 @@ func NewFiberServer(cfg *config.AppConfig, vibeHandler *handler.VibeHandler) *fi
 	// For specific groups: api.Use(customMiddleware.RateLimiterFiber(10, 20))
 	app.Use(customMiddleware.RateLimiterFiber(cfg.RateLimitPerSecond, cfg.RateLimitBurst))
 
-
 	// Swagger UI
 	// BasePath for swagger UI itself. If docs.SwaggerInfo.BasePath is /api/v1,
 	// then swagger docs will be found relative to that for API calls, but the UI
@@ -62,7 +59,6 @@ func NewFiberServer(cfg *config.AppConfig, vibeHandler *handler.VibeHandler) *fi
 
 	// Prometheus Metrics Endpoint
 	app.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
-
 
 	// Routes
 	// Health Check Route
@@ -92,7 +88,6 @@ func NewFiberServer(cfg *config.AppConfig, vibeHandler *handler.VibeHandler) *fi
 		vibesGroup.Put("/:id", vibeHandler.UpdateVibeFiber)
 		vibesGroup.Delete("/:id", vibeHandler.DeleteVibeFiber)
 	}
-
 
 	return app
 }

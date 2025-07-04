@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aebalz/daily-vibe-tracker/internal/config"
 	"github.com/aebalz/daily-vibe-tracker/internal/model"
 	"github.com/aebalz/daily-vibe-tracker/internal/repository"
 	// "github.com/go-playground/validator/v10" // Example for more complex validation
@@ -13,10 +14,10 @@ import (
 
 // VibeServiceRequestLimitOffset defines default values for limit and offset.
 const (
-	DefaultLimit   = 10
-	DefaultOffset  = 0
-	MaxLimit       = 100
-	DefaultSortBy  = "date"
+	DefaultLimit     = 10
+	DefaultOffset    = 0
+	MaxLimit         = 100
+	DefaultSortBy    = "date"
 	DefaultSortOrder = "desc"
 )
 
@@ -38,25 +39,17 @@ type VibeServiceInterface interface {
 	// ValidateVibe(vibe *model.Vibe) error // Example for a validation helper
 }
 
-	"context" // Required for cache operations
-
-	"github.com/aebalz/daily-vibe-tracker/internal/config" // Required for AppConfig
-	"github.com/aebalz/daily-vibe-tracker/pkg/cache"       // Required for RedisCache
-)
-
 // VibeService implements VibeServiceInterface.
 type VibeService struct {
 	VibeRepo repository.VibeRepositoryInterface
-	Cache    *cache.RedisCache // Pointer to allow nil if cache connection fails
 	Cfg      *config.AppConfig // To access CacheTTLExpiration etc.
 	// validate *validator.Validate // For struct validation if needed
 }
 
 // NewVibeService creates a new VibeService.
-func NewVibeService(vibeRepo repository.VibeRepositoryInterface, redisCache *cache.RedisCache, cfg *config.AppConfig) VibeServiceInterface {
+func NewVibeService(vibeRepo repository.VibeRepositoryInterface, cfg *config.AppConfig) VibeServiceInterface {
 	return &VibeService{
 		VibeRepo: vibeRepo,
-		Cache:    redisCache,
 		Cfg:      cfg,
 		// validate: validator.New(), // Initialize validator
 	}
@@ -77,31 +70,30 @@ func getVibeStatsCacheKey(period string) string {
 }
 
 // --- Helper for Cache Invalidation ---
-func (s *VibeService) invalidateVibeCache(id uint) {
-	if s.Cache != nil {
-		key := getVibeCacheKey(id)
-		err := s.Cache.Delete(context.Background(), key)
-		if err != nil {
-			fmt.Printf("Warning: failed to delete vibe %d from cache: %v\n", id, err)
-		}
-	}
-}
+// func (s *VibeService) invalidateVibeCache(id uint) {
+// 	if s.Cache != nil {
+// 		key := getVibeCacheKey(id)
+// 		err := s.Cache.Delete(context.Background(), key)
+// 		if err != nil {
+// 			fmt.Printf("Warning: failed to delete vibe %d from cache: %v\n", id, err)
+// 		}
+// 	}
+// }
 
-func (s *VibeService) invalidateStatsCache(period string) {
-	if s.Cache != nil {
-		// This is a broad invalidation for the given period type.
-		// More granular invalidation would require knowing the exact date ranges affected.
-		key := getVibeStatsCacheKey(period)
-		err := s.Cache.Delete(context.Background(), key)
-		if err != nil {
-			fmt.Printf("Warning: failed to delete stats cache for period %s: %v\n", period, err)
-		}
-		// Potentially invalidate all stats keys if a vibe change could affect multiple periods
-		// e.g., s.Cache.DeletePattern(context.Background(), "stats:*")
-		// For now, just the specific period type.
-	}
-}
-
+// func (s *VibeService) invalidateStatsCache(period string) {
+// 	if s.Cache != nil {
+// 		// This is a broad invalidation for the given period type.
+// 		// More granular invalidation would require knowing the exact date ranges affected.
+// 		key := getVibeStatsCacheKey(period)
+// 		err := s.Cache.Delete(context.Background(), key)
+// 		if err != nil {
+// 			fmt.Printf("Warning: failed to delete stats cache for period %s: %v\n", period, err)
+// 		}
+// 		// Potentially invalidate all stats keys if a vibe change could affect multiple periods
+// 		// e.g., s.Cache.DeletePattern(context.Background(), "stats:*")
+// 		// For now, just the specific period type.
+// 	}
+// }
 
 // ValidateVibe performs business logic validation on a vibe.
 // GORM struct tags handle database-level validation. This is for service-level rules.
@@ -133,36 +125,36 @@ func (s *VibeService) CreateVibe(vibe *model.Vibe) (*model.Vibe, error) {
 		return nil, err
 	}
 	// Invalidate stats cache as new data might change statistics
-	s.invalidateStatsCache("week") // Invalidate all relevant periods or use a pattern
-	s.invalidateStatsCache("month")
-	s.invalidateStatsCache("year")
+	// s.invalidateStatsCache("week") // Invalidate all relevant periods or use a pattern
+	// s.invalidateStatsCache("month")
+	// s.invalidateStatsCache("year")
 	// No need to invalidate GetVibeByID cache for a newly created vibe, as it won't be cached yet by its ID.
 	return createdVibe, nil
 }
 
 // GetVibeByID retrieves a single vibe by its ID, using cache if available.
 func (s *VibeService) GetVibeByID(id uint) (*model.Vibe, error) {
-	if s.Cache != nil {
-		var vibe model.Vibe
-		cacheKey := getVibeCacheKey(id)
-		if err := s.Cache.Get(context.Background(), cacheKey, &vibe); err == nil {
-			// Cache hit
-			return &vibe, nil
-		}
-		// Cache miss or error, proceed to fetch from DB
-	}
+	// if s.Cache != nil {
+	// 	var vibe model.Vibe
+	// 	cacheKey := getVibeCacheKey(id)
+	// 	if err := s.Cache.Get(context.Background(), cacheKey, &vibe); err == nil {
+	// 		// Cache hit
+	// 		return &vibe, nil
+	// 	}
+	// 	// Cache miss or error, proceed to fetch from DB
+	// }
 
 	vibe, err := s.VibeRepo.GetVibeByID(id)
 	if err != nil {
 		return nil, err
 	}
 
-	if s.Cache != nil && vibe != nil { // vibe != nil to avoid caching non-existent records that returned error
-		cacheKey := getVibeCacheKey(id)
-		if err := s.Cache.Set(context.Background(), cacheKey, vibe); err != nil {
-			fmt.Printf("Warning: failed to set vibe %d in cache: %v\n", id, err)
-		}
-	}
+	// if s.Cache != nil && vibe != nil { // vibe != nil to avoid caching non-existent records that returned error
+	// 	cacheKey := getVibeCacheKey(id)
+	// 	if err := s.Cache.Set(context.Background(), cacheKey, vibe); err != nil {
+	// 		fmt.Printf("Warning: failed to set vibe %d in cache: %v\n", id, err)
+	// 	}
+	// }
 	return vibe, nil
 }
 
@@ -194,7 +186,6 @@ func (s *VibeService) GetAllVibes(filters map[string]interface{}, limit, offset 
 		filters["mood"] = strings.ToLower(strings.TrimSpace(mood))
 	}
 
-
 	return s.VibeRepo.GetAllVibes(filters, limit, offset, sortBy, sortOrder)
 }
 
@@ -214,10 +205,10 @@ func (s *VibeService) UpdateVibe(id uint, updatedVibe *model.Vibe) (*model.Vibe,
 		return nil, err
 	}
 	// Invalidate caches
-	s.invalidateVibeCache(id)
-	s.invalidateStatsCache("week")
-	s.invalidateStatsCache("month")
-	s.invalidateStatsCache("year")
+	// s.invalidateVibeCache(id)
+	// s.invalidateStatsCache("week")
+	// s.invalidateStatsCache("month")
+	// s.invalidateStatsCache("year")
 	return resultVibe, nil
 }
 
@@ -229,24 +220,24 @@ func (s *VibeService) DeleteVibe(id uint) error {
 		return err
 	}
 	// Invalidate caches
-	s.invalidateVibeCache(id)
-	s.invalidateStatsCache("week")
-	s.invalidateStatsCache("month")
-	s.invalidateStatsCache("year")
+	// s.invalidateVibeCache(id)
+	// s.invalidateStatsCache("week")
+	// s.invalidateStatsCache("month")
+	// s.invalidateStatsCache("year")
 	return nil
 }
 
 // GetVibeStatistics calculates and returns vibe statistics, using cache if available.
 func (s *VibeService) GetVibeStatistics(period string) (map[string]interface{}, error) {
-	cacheKey := getVibeStatsCacheKey(period)
-	if s.Cache != nil {
-		var stats map[string]interface{}
-		if err := s.Cache.Get(context.Background(), cacheKey, &stats); err == nil {
-			// Cache hit
-			return stats, nil
-		}
-		// Cache miss or error, proceed to compute
-	}
+	// cacheKey := getVibeStatsCacheKey(period)
+	// if s.Cache != nil {
+	// 	var stats map[string]interface{}
+	// 	if err := s.Cache.Get(context.Background(), cacheKey, &stats); err == nil {
+	// 		// Cache hit
+	// 		return stats, nil
+	// 	}
+	// 	// Cache miss or error, proceed to compute
+	// }
 
 	var startDate, endDate time.Time
 	now := time.Now()
@@ -298,15 +289,14 @@ func (s *VibeService) GetVibeStatistics(period string) (map[string]interface{}, 
 		}
 	}
 
-	if s.Cache != nil && len(stats) > 0 { // len(stats) > 0 to avoid caching empty/error states if logic allows
-		if err := s.Cache.Set(context.Background(), cacheKey, stats); err != nil {
-			fmt.Printf("Warning: failed to set stats for period %s in cache: %v\n", period, err)
-		}
-	}
+	// if s.Cache != nil && len(stats) > 0 { // len(stats) > 0 to avoid caching empty/error states if logic allows
+	// 	if err := s.Cache.Set(context.Background(), cacheKey, stats); err != nil {
+	// 		fmt.Printf("Warning: failed to set stats for period %s in cache: %v\n", period, err)
+	// 	}
+	// }
 
 	return stats, nil
 }
-
 
 // calculateMoodPatterns identifies common transitions between moods.
 // Assumes vibes are sorted by date.
@@ -424,7 +414,6 @@ func (s *VibeService) calculateActivityMoodCorrelation(vibes []model.Vibe, topNA
 	}
 	return result
 }
-
 
 // GetTodaysVibeRecommendation provides a simple recommendation.
 func (s *VibeService) GetTodaysVibeRecommendation() (map[string]interface{}, error) {

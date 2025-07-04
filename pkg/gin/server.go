@@ -42,7 +42,6 @@ func NewGinServer(cfg *config.AppConfig, vibeHandler *handler.VibeHandler) *gin.
 	router.Use(customMiddleware.MetricsMiddlewareGin())
 	router.Use(customMiddleware.RateLimiterGin(cfg.RateLimitPerSecond, cfg.RateLimitBurst))
 
-
 	corsConfig := cors.DefaultConfig()
 	if len(cfg.CorsAllowedOrigins) == 1 && cfg.CorsAllowedOrigins[0] == "*" {
 		corsConfig.AllowAllOrigins = true
@@ -61,10 +60,8 @@ func NewGinServer(cfg *config.AppConfig, vibeHandler *handler.VibeHandler) *gin.
 	url := ginSwagger.URL("/swagger/doc.json")
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggoFiles.Handler, url))
 
-
 	// Prometheus Metrics Endpoint
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
-
 
 	// Routes
 	// Health Check Route

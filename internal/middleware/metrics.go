@@ -1,9 +1,11 @@
 package middleware
 
 import (
+	"errors"
+	"net/http"
 	"strconv"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gofiber/fiber/v2"
@@ -35,42 +37,41 @@ var (
 // Example: /api/v1/vibes/123 -> /api/v1/vibes/:id
 // This needs to be adjusted based on actual routing patterns.
 func normalizePath(path string, framework string, ctx interface{}) string {
-    // Simple normalization for paths with IDs.
-    // This is a basic example and might need to be more sophisticated
-    // depending on the route structure.
-    parts := strings.Split(strings.Trim(path, "/"), "/")
+	// Simple normalization for paths with IDs.
+	// This is a basic example and might need to be more sophisticated
+	// depending on the route structure.
+	parts := strings.Split(strings.Trim(path, "/"), "/")
 
-    // Example: /api/v1/vibes/{id}
-    if len(parts) > 0 && strings.HasPrefix(path, "/api/v1/vibes/") && len(parts) == 4 {
-         _, err := strconv.Atoi(parts[3])
-         if err == nil {
-            return "/" + strings.Join(parts[:3], "/") + "/:id"
-         }
-    }
+	// Example: /api/v1/vibes/{id}
+	if len(parts) > 0 && strings.HasPrefix(path, "/api/v1/vibes/") && len(parts) == 4 {
+		_, err := strconv.Atoi(parts[3])
+		if err == nil {
+			return "/" + strings.Join(parts[:3], "/") + "/:id"
+		}
+	}
 
-    // For Fiber, try to get the matched route pattern if available
-    if framework == "fiber" {
-        fCtx := ctx.(*fiber.Ctx)
-        routePath := fCtx.Route().Path
-        if routePath != "" && routePath != "/" { // Avoid using generic "/" if specific route matched
-             // Fiber paths might already be in a good format e.g. /api/v1/vibes/:id
-            return routePath
-        }
-    }
+	// For Fiber, try to get the matched route pattern if available
+	if framework == "fiber" {
+		fCtx := ctx.(*fiber.Ctx)
+		routePath := fCtx.Route().Path
+		if routePath != "" && routePath != "/" { // Avoid using generic "/" if specific route matched
+			// Fiber paths might already be in a good format e.g. /api/v1/vibes/:id
+			return routePath
+		}
+	}
 
-    // For Gin, try to get the matched route pattern
-    if framework == "gin" {
-        gCtx := ctx.(*gin.Context)
-        if gCtx.FullPath() != "" && gCtx.FullPath() != "/" {
-             // Gin FullPath() usually gives something like /api/v1/vibes/:id
-            return gCtx.FullPath()
-        }
-    }
+	// For Gin, try to get the matched route pattern
+	if framework == "gin" {
+		gCtx := ctx.(*gin.Context)
+		if gCtx.FullPath() != "" && gCtx.FullPath() != "/" {
+			// Gin FullPath() usually gives something like /api/v1/vibes/:id
+			return gCtx.FullPath()
+		}
+	}
 
-    // Fallback to the provided path if no specific pattern matched or normalization applied
-    return path
+	// Fallback to the provided path if no specific pattern matched or normalization applied
+	return path
 }
-
 
 // MetricsMiddlewareFiber creates a Fiber middleware for collecting Prometheus metrics.
 func MetricsMiddlewareFiber() fiber.Handler {
@@ -119,9 +120,8 @@ func MetricsMiddlewareGin() gin.HandlerFunc {
 		// If c.FullPath() is empty (e.g. for NoRoute), use c.Request.URL.Path and normalize.
 		path := normalizePath(c.Request.URL.Path, "gin", c)
 		if c.FullPath() != "" { // Prefer FullPath if available and not just root
-		path = c.FullPath()
-	}
-
+			path = c.FullPath()
+		}
 
 		duration := time.Since(start).Seconds()
 
